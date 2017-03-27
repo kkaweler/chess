@@ -39,14 +39,14 @@ function Knight(color, position) {
     Figure.apply(this, arguments);
     this.GetMoves = function () {
         var array = [];
-        if (this.coords.x - 1 > 0 && this.coords.y + 3 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 3});
-        if (this.coords.x - 1 > 0 && this.coords.y - 3 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 3});
-        if (this.coords.x + 1 > 0 && this.coords.y + 3 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 3});
-        if (this.coords.x + 1 > 0 && this.coords.y - 3 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 3});
+        if (this.coords.x - 1 >= 0 && this.coords.y + 2 < 8)
+            array.push({x: this.coords.x - 1, y: this.coords.y + 2});
+        if (this.coords.x - 1 >= 0 && this.coords.y - 2 >= 0)
+            array.push({x: this.coords.x - 1, y: this.coords.y - 2});
+        if (this.coords.x + 1 < 8 && this.coords.y + 2 < 8)
+            array.push({x: this.coords.x + 1, y: this.coords.y + 2});
+        if (this.coords.x + 1 < 8 && this.coords.y - 2 >= 0)
+            array.push({x: this.coords.x + 1, y: this.coords.y - 2});
         return array;
     }
 }
@@ -91,22 +91,22 @@ function Bishop(color, position) {
     Figure.apply(this, arguments);
     this.GetMoves = function () {
         var array = [];
-        for (var x = this.coords.x + 1, y = this.coords.y; x < 8; x++, y++) {
+        for (var x = this.coords.x + 1, y = this.coords.y + 1; x < 8; x++, y++) {
             array.push({x: x, y: y});
             if (map[y][x] !== null)
                 break;
         }
-        for (var x = this.coords.x + 1, y = this.coords.y; x < 8; x++, y--) {
+        for (var x = this.coords.x + 1, y = this.coords.y - 1; x < 8; x++, y--) {
             array.push({x: x, y: y});
             if (map[y][x] !== null)
                 break;
         }
-        for (var x = this.coords.x - 1, y = this.coords.y; x >= 0; x--, y++) {
+        for (var x = this.coords.x - 1, y = this.coords.y + 1; x >= 0; x--, y++) {
             array.push({x: x, y: y});
             if (map[y][x] !== null)
                 break;
         }
-        for (var x = this.coords.x - 1, y = this.coords.y; x >= 0; x--, y--) {
+        for (var x = this.coords.x - 1, y = this.coords.y - 1; x >= 0; x--, y--) {
             array.push({x: x, y: y});
             if (map[y][x] !== null)
                 break;
@@ -242,7 +242,9 @@ function Game() {
             for (var j = 0; j < 8; j++) {
                 if (map[i][j] !== null) {
                     var element = document.getElementById('field-cell-' + i + j);
-                    element.className = map[i][j].type + ' not-empty-sell ' + map[i][j].color;
+                    element.classList.add(map[i][j].type);
+                    element.classList.add('not-empty-sell');
+                    element.classList.add(map[i][j].color);
                 }
             }
         }
@@ -258,9 +260,33 @@ window.onload = function () {
     var blackColor = '#9e9e9e';
     var doBlack = false;
     for (var i = 7; i >= 0; i--) {
-        for (var j = 7; j >= 0; j--) {
+        for (var j = 0; j < 8; j++) {
             var element = document.createElement('div');
             element.id = 'field-cell-' + i + j;
+            element.dataset.x = j;
+            element.dataset.y = i;
+            element.onclick = function () {
+                var data = this.dataset;
+                if (map[data.y][data.x] !== null) {
+                    var highlight = document.getElementsByClassName('highlighted');
+                    if (highlight.length) {
+                        while(highlight.length > 0){
+                            highlight[0].parentNode.removeChild(highlight[0]);
+                        }
+                    }
+                    highlight = map[data.y][data.x].GetMoves();
+                    highlight.forEach(function (item) {
+                        var el = document.createElement('div');
+                        el.classList.add('highlighted');
+                        el.style.position = "absolute";
+                        var tmp = document.getElementById('field-cell-' + item.y + item.x);
+                        el.style.left = tmp.offsetLeft + 'px';
+                        el.style.top = tmp.offsetTop + 'px';
+                        document.body.appendChild(el);
+                    });
+                }
+
+            }
             if (doBlack) {
                 element.style.backgroundColor = blackColor;
                 doBlack = false;
