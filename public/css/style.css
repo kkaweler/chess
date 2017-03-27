@@ -1,0 +1,46 @@
+.main-field{
+    width: 400px;
+    height: 400px;
+    margin: auto;
+}
+.main-field div{
+    width: 50px;
+    height: 50px;
+    float: left;
+}
+
+.not-empty-sell{
+    background: url("/img/sprite.png");
+}
+
+.white{
+    background-position-y: 0;
+}
+
+.black{
+    background-position-y: 50px;
+}
+
+.king{
+    background-position-x: 0px;
+}
+
+.queen{
+    background-position-x: 250px;
+}
+
+.bishop{
+    background-position-x: 200px;
+}
+
+.knight{
+    background-position-x: 150px;
+}
+
+.rock{
+    background-position-x: 100px;
+}
+
+.pawn{
+    background-position-x: 50px;
+}
