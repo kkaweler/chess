@@ -10,7 +10,23 @@ function Figure(newColor, position) {
         var posibleCoords = this.GetMoves();
         for (var i = 0; i < posibleCoords.length; i++)
             if (posibleCoords[i].x == coords.x && posibleCoords[i].y == coords.y) {
+                var oldCoords =  this.coords;
                 this.coords = coords;
+
+                var oldObj = document.getElementById('field-cell-'+oldCoords.y+oldCoords.x),
+                    newObj = document.getElementById('field-cell-'+coords.y+coords.x);
+
+                newObj.className = "";
+                oldObj.classList.forEach(function(item){
+                    newObj.classList.add(item);
+                });
+                oldObj.className = "";
+
+                if(this.type == 'pawn') this.moved = true;
+
+                map[this.coords.y][this.coords.x] = this;
+                map[oldCoords.y][oldCoords.x] = null;
+                DeleteHighlighted();
                 return true;
             }
         return false;
@@ -21,14 +37,36 @@ function Figure(newColor, position) {
 function Pawn(color, position) {
     this.prototype = Object.create(Figure.prototype);
     this.type = 'pawn';
+    this.moved = false;
     Figure.apply(this, arguments);
     this.GetMoves = function () {
-        var array = [];
-        var direction = this.color == 'white' ? 1 : -1;
-        if (this.coords.x + 1 < 8 && (this.coords.y + direction >= 0 && this.coords.y + direction < 8))
-            array.push({x: this.coords.x + 1, y: this.coords.y + direction});
-        if (this.coords.x - 1 >= 0 && (this.coords.y + direction >= 0 && this.coords.y + direction < 8))
-            array.push({x: this.coords.x - 1, y: this.coords.y + direction});
+        var array = [], direction = this.color == 'white' ? 1 : -1;
+        var y = this.coords.y + direction, x = this.coords.x;
+
+        if (y >= 0 && y < 8) {
+            if (map[y][x] === null)
+                array.push({x: x, y: y});
+        }
+        if (!this.moved) {
+            if (y >= 0 && y < 8) {
+                if (map[y + direction][x] === null && map[y][x] === null) {
+                    array.push({x: x, y: y + direction});
+                }
+            }
+        }
+
+        if (x + 1 < 8 && (y >= 0 && y < 8)) {
+            if (map[y][x + 1] !== null)
+                if (map[y][x + 1].color != this.color)
+                    array.push({x: x + 1, y: y});
+        }
+
+        if (x - 1 >= 0 && (y >= 0 && y < 8)) {
+            if (map[y][x - 1] !== null)
+                if (map[y][x - 1].color != this.color)
+                    array.push({x: x - 1, y: y});
+        }
+
         return array;
     }
 }
@@ -39,14 +77,31 @@ function Knight(color, position) {
     Figure.apply(this, arguments);
     this.GetMoves = function () {
         var array = [];
-        if (this.coords.x - 1 >= 0 && this.coords.y + 2 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 2});
-        if (this.coords.x - 1 >= 0 && this.coords.y - 2 >= 0)
-            array.push({x: this.coords.x - 1, y: this.coords.y - 2});
-        if (this.coords.x + 1 < 8 && this.coords.y + 2 < 8)
-            array.push({x: this.coords.x + 1, y: this.coords.y + 2});
-        if (this.coords.x + 1 < 8 && this.coords.y - 2 >= 0)
-            array.push({x: this.coords.x + 1, y: this.coords.y - 2});
+        var y = y, x = this.coords.x;
+        if (x - 1 >= 0 && y + 2 < 8)
+            if (map[y + 2][x - 1] === null)
+                array.push({x: x - 1, y: y + 2});
+            else if (map[y + 2][x - 1].color != this.color)
+                array.push({x: x - 1, y: y + 2});
+
+        if (x - 1 >= 0 && y - 2 >= 0)
+            if (map[y - 2][x - 1] === null)
+                array.push({x: x - 1, y: y - 2});
+            else if (map[y - 2][x - 1].color != this.color)
+                array.push({x: x - 1, y: y - 2});
+
+        if (x + 1 < 8 && y + 2 < 8)
+            if (map[y + 2][x + 1] === null)
+                array.push({x: x + 1, y: y + 2});
+            else if (map[y + 2][x + 1].color != this.color)
+                array.push({x: x + 1, y: y + 2});
+
+        if (x + 1 < 8 && y - 2 >= 0)
+            if (map[y - 2][x + 1] === null)
+                array.push({x: x + 1, y: y - 2});
+            else if (map[y - 2][x + 1].color != this.color)
+                array.push({x: x + 1, y: y - 2});
+
         return array;
     }
 }
@@ -57,30 +112,47 @@ function Rock(color, position) {
     Figure.apply(this, arguments);
     this.GetMoves = function () {
         var array = [];
+
         for (var x = this.coords.x + 1; x < 8; x++) {
             var toInsert = {x: x, y: this.coords.y};
-            array.push(toInsert);
+            if (map[toInsert.y][toInsert.x] === null)
+                array.push(toInsert);
+            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
         }
+
         for (var x = this.coords.x - 1; x >= 0; x--) {
             var toInsert = {x: x, y: this.coords.y};
-            array.push(toInsert);
+            if (map[toInsert.y][toInsert.x] === null)
+                array.push(toInsert);
+            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
         }
+
         for (var y = this.coords.y + 1; y < 8; y++) {
             var toInsert = {x: this.coords.x, y: y};
-            array.push(toInsert);
+            if (map[toInsert.y][toInsert.x] === null)
+                array.push(toInsert);
+            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
         }
+
         for (var y = this.coords.y - 1; y >= 0; y--) {
             var toInsert = {x: this.coords.x, y: y};
-            array.push(toInsert);
+            if (map[toInsert.y][toInsert.x] === null)
+                array.push(toInsert);
+            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
         }
+
         return array;
     }
 }
@@ -92,24 +164,44 @@ function Bishop(color, position) {
     this.GetMoves = function () {
         var array = [];
         for (var x = this.coords.x + 1, y = this.coords.y + 1; x < 8; x++, y++) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
+            if (y >= 0 && y < 8) {
+                if (map[y][x] === null)
+                    array.push({x: x, y: y});
+                else if (map[y][x].color == this.color) break;
+                else array.push({x: x, y: y});
+                if (map[y][x] !== null)
+                    break;
+            }
         }
         for (var x = this.coords.x + 1, y = this.coords.y - 1; x < 8; x++, y--) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
+            if (y >= 0 && y < 8) {
+                if (map[y][x] === null)
+                    array.push({x: x, y: y});
+                else if (map[y][x].color == this.color) break;
+                else array.push({x: x, y: y});
+                if (map[y][x] !== null)
+                    break;
+            }
         }
         for (var x = this.coords.x - 1, y = this.coords.y + 1; x >= 0; x--, y++) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
+            if (y >= 0 && y < 8) {
+                if (map[y][x] === null)
+                    array.push({x: x, y: y});
+                else if (map[y][x].color == this.color) break;
+                else array.push({x: x, y: y});
+                if (map[y][x] !== null)
+                    break;
+            }
         }
         for (var x = this.coords.x - 1, y = this.coords.y - 1; x >= 0; x--, y--) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
+            if (y >= 0 && y < 8) {
+                if (map[y][x] === null)
+                    array.push({x: x, y: y});
+                else if (map[y][x].color == this.color) break;
+                else array.push({x: x, y: y});
+                if (map[y][x] !== null)
+                    break;
+            }
         }
         return array;
     }
@@ -120,53 +212,19 @@ function Queen(color, position) {
     this.type = 'queen';
     Figure.apply(this, arguments);
     this.GetMoves = function () {
-        var array = [];
+        var array = [],
+            tmp = new Bishop('white', this.coords);
 
-        for (var x = this.coords.x + 1, y = this.coords.y; x < 8; x++, y++) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
-        }
-        for (var x = this.coords.x + 1, y = this.coords.y; x < 8; x++, y--) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
-        }
-        for (var x = this.coords.x - 1, y = this.coords.y; x >= 0; x--, y++) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
-        }
-        for (var x = this.coords.x - 1, y = this.coords.y; x >= 0; x--, y--) {
-            array.push({x: x, y: y});
-            if (map[y][x] !== null)
-                break;
-        }
+        tmp.GetMoves().forEach(function (item) {
+            array.push(item);
+        });
 
-        for (var x = this.coords.x + 1; x < 8; x++) {
-            var toInsert = {x: x, y: this.coords.y};
-            array.push(toInsert);
-            if (map[toInsert.y][toInsert.x] !== null)
-                break;
-        }
-        for (var x = this.coords.x - 1; x >= 0; x--) {
-            var toInsert = {x: x, y: this.coords.y};
-            array.push(toInsert);
-            if (map[toInsert.y][toInsert.x] !== null)
-                break;
-        }
-        for (var y = this.coords.y + 1; y < 8; y++) {
-            var toInsert = {x: this.coords.x, y: y};
-            array.push(toInsert);
-            if (map[toInsert.y][toInsert.x] !== null)
-                break;
-        }
-        for (var y = this.coords.y - 1; y >= 0; y--) {
-            var toInsert = {x: this.coords.x, y: y};
-            array.push(toInsert);
-            if (map[toInsert.y][toInsert.x] !== null)
-                break;
-        }
+        tmp = new Rock('white', this.coords);
+        tmp.GetMoves().forEach(function (item) {
+            array.push(item);
+        });
+
+        delete (tmp);
 
         return array;
     }
@@ -178,22 +236,62 @@ function King(color, position) {
     Figure.apply(this, arguments);
     this.GetMoves = function () {
         var array = [];
-        if (this.coords.x + 1 < 8)
-            array.push({x: this.coords.x + 1, y: this.coords.y});
-        if (this.coords.x - 1 >= 0)
-            array.push({x: this.coords.x - 1, y: this.coords.y});
-        if (this.coords.y + 1 < 8)
-            array.push({x: this.coords.x, y: this.coords.y + 1});
-        if (this.coords.y - 1 >= 0)
-            array.push({x: this.coords.x, y: this.coords.y - 1});
-        if (this.coords.x + 1 < 8 && this.coords.y + 1 < 8)
-            array.push({x: this.coords.x + 1, y: this.coords.y + 1});
-        if (this.coords.x + 1 < 8 && this.coords.y - 1 >= 0)
-            array.push({x: this.coords.x + 1, y: this.coords.y - 1});
-        if (this.coords.x - 1 >= 0 && this.coords.y + 1 < 8)
-            array.push({x: this.coords.x - 1, y: this.coords.y + 1});
-        if (this.coords.x - 1 < 8 && this.coords.y - 1 >= 0)
-            array.push({x: this.coords.x - 1, y: this.coords.y - 1});
+
+        if (this.coords.x + 1 < 8) {
+            if (map[this.coords.y][this.coords.x + 1] === null)
+                array.push({x: this.coords.x + 1, y: this.coords.y});
+            else if (map[this.coords.y][this.coords.x + 1].color != this.color)
+                array.push({x: this.coords.x + 1, y: this.coords.y});
+        }
+
+        if (this.coords.x - 1 >= 0) {
+            if (map[this.coords.y][this.coords.x - 1] === null)
+                array.push({x: this.coords.x - 1, y: this.coords.y});
+            else if (map[this.coords.y][this.coords.x - 1].color != this.color)
+                array.push({x: this.coords.x - 1, y: this.coords.y});
+        }
+
+        if (this.coords.y + 1 < 8) {
+            if (map[this.coords.y + 1][this.coords.x] === null)
+                array.push({x: this.coords.x, y: this.coords.y + 1});
+            else if (map[this.coords.y + 1][this.coords.x].color != this.color)
+                array.push({x: this.coords.x, y: this.coords.y + 1});
+        }
+
+        if (this.coords.y - 1 >= 0) {
+            if (map[this.coords.y - 1][this.coords.x] === null)
+                array.push({x: this.coords.x, y: this.coords.y - 1});
+            else if (map[this.coords.y - 1][this.coords.x].color != this.color)
+                array.push({x: this.coords.x, y: this.coords.y - 1});
+        }
+
+        if (this.coords.x + 1 < 8 && this.coords.y + 1 < 8) {
+            if (map[this.coords.y + 1][this.coords.x + 1] === null)
+                array.push({x: this.coords.x + 1, y: this.coords.y + 1});
+            else if (map[this.coords.y + 1][this.coords.x + 1].color != this.color)
+                array.push({x: this.coords.x + 1, y: this.coords.y + 1});
+        }
+
+        if (this.coords.x + 1 < 8 && this.coords.y - 1 >= 0) {
+            if (map[this.coords.y - 1][this.coords.x + 1] === null)
+                array.push({x: this.coords.x + 1, y: this.coords.y - 1});
+            else if (map[this.coords.y - 1][this.coords.x + 1].color != this.color)
+                array.push({x: this.coords.x + 1, y: this.coords.y - 1});
+        }
+
+        if (this.coords.x - 1 >= 0 && this.coords.y + 1 < 8) {
+            if (map[this.coords.y + 1][this.coords.x - 1] === null)
+                array.push({x: this.coords.x - 1, y: this.coords.y + 1});
+            else if (map[this.coords.y + 1][this.coords.x - 1].color != this.color)
+                array.push({x: this.coords.x - 1, y: this.coords.y + 1});
+        }
+
+        if (this.coords.x - 1 < 8 && this.coords.y - 1 >= 0) {
+            if (map[this.coords.y - 1][this.coords.x - 1] === null)
+                array.push({x: this.coords.x - 1, y: this.coords.y - 1});
+            else if (map[this.coords.y - 1][this.coords.x - 1].color != this.color)
+                array.push({x: this.coords.x - 1, y: this.coords.y - 1});
+        }
         return array;
     }
 }
@@ -252,6 +350,15 @@ function Game() {
     }
 }
 
+function DeleteHighlighted(){
+    var highlight = document.getElementsByClassName('highlighted');
+    if (highlight.length) {
+        while (highlight.length > 0) {
+            highlight[0].parentNode.removeChild(highlight[0]);
+        }
+    }
+}
+
 var mainDiv;
 var game = new Game();
 window.onload = function () {
@@ -267,18 +374,21 @@ window.onload = function () {
             element.dataset.y = i;
             element.onclick = function () {
                 var data = this.dataset;
+                var id = this.id;
+                DeleteHighlighted();
                 if (map[data.y][data.x] !== null) {
-                    var highlight = document.getElementsByClassName('highlighted');
-                    if (highlight.length) {
-                        while(highlight.length > 0){
-                            highlight[0].parentNode.removeChild(highlight[0]);
-                        }
-                    }
-                    highlight = map[data.y][data.x].GetMoves();
+                    var highlight = map[data.y][data.x].GetMoves();
                     highlight.forEach(function (item) {
                         var el = document.createElement('div');
                         el.classList.add('highlighted');
                         el.style.position = "absolute";
+                        el.dataset.parent = id;
+                        el.dataset.x = item.x;
+                        el.dataset.y = item.y;
+                        el.onclick = function () {
+                            var parent = document.getElementById(this.dataset.parent).dataset;
+                            map[parent.y][parent.x].Move({x: parseInt(this.dataset.x), y: parseInt(this.dataset.y)});
+                        }
                         var tmp = document.getElementById('field-cell-' + item.y + item.x);
                         el.style.left = tmp.offsetLeft + 'px';
                         el.style.top = tmp.offsetTop + 'px';
