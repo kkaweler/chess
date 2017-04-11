@@ -1,14 +1,27 @@
-var express = require('express');
+let express = require('express');
+let app = express();
+let io = require('socket.io')(3000);
+let cookieSession = require('cookie-session');
 
-var app = express();
 app.use(express.static('public'));
 
-//var io = require('socket.io')(3000);
+app.set('trust proxy', 1);
+app.use(cookieSession({
+    name: 'session',
+    keys: ['key1', 'key2']
+}))
 
-app.get('/', function(req, res){
+app.get('/', function (req, res) {
     res.sendFile(__dirname + '/templates/index.html');
 });
 
-app.listen(3000, function(){
-    console.log('Ready too rock!');
+app.listen(80, function () {
+    console.log('Ready to rock!');
+});
+var sessions = {};
+io.on('connection', function (socket) {
+    socket.on('test', function () {
+        console.log('hui');
+    });
+
 });

@@ -4,8 +4,8 @@ class Figure {
         this.coords = position;
     }
 
-    Move(coords) {
-        let posibleCoords = this.GetMoves();
+    Move(coords, map) {
+        let posibleCoords = this.GetMoves(map);
         for (let i = 0; i < posibleCoords.length; i++)
             if (posibleCoords[i].x == coords.x && posibleCoords[i].y == coords.y) {
                 let oldCoords = this.coords;
@@ -60,7 +60,7 @@ class Pawn extends Figure {
         this.moved = false;
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [], direction = this.color == 'white' ? 1 : -1;
         let y = this.coords.y + direction, x = this.coords.x;
 
@@ -99,7 +99,7 @@ class Knight extends Figure {
         this.type = 'knight';
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [];
         let y = y, x = this.coords.x;
         if (x - 1 >= 0 && y + 2 < 8)
@@ -136,7 +136,7 @@ class Rock extends Figure {
         this.type = 'rock';
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [];
 
         for (let x = this.coords.x + 1; x < 8; x++) {
@@ -189,7 +189,7 @@ class Bishop extends Figure {
         this.type = 'bishop';
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [];
         for (let x = this.coords.x + 1, y = this.coords.y + 1; x < 8; x++, y++) {
             if (y >= 0 && y < 8) {
@@ -241,16 +241,16 @@ class Queen extends Figure {
         this.type = 'queen';
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [],
             tmp = new Bishop('white', this.coords);
 
-        tmp.GetMoves().forEach(function (item) {
+        tmp.GetMoves(map).forEach(function (item) {
             array.push(item);
         });
 
         tmp = new Rock('white', this.coords);
-        tmp.GetMoves().forEach(function (item) {
+        tmp.GetMoves(map).forEach(function (item) {
             array.push(item);
         });
 
@@ -264,7 +264,7 @@ class King extends Figure {
         this.type = 'king';
     }
 
-    GetMoves() {
+    GetMoves(map) {
         let array = [];
 
         if (this.coords.x + 1 < 8) {
@@ -325,3 +325,12 @@ class King extends Figure {
         return array;
     }
 }
+
+module.exports({
+    Pawn: Pawn,
+    Rock: Rock,
+    Bishop: Bishop,
+    Queen: Queen,
+    King: King,
+    Knight: Knight
+});

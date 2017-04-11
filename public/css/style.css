@@ -3,7 +3,7 @@
     height: 400px;
     margin: auto;
 }
-.main-field div{
+.main-field div, .morph div{
     width: 50px;
     height: 50px;
     float: left;
