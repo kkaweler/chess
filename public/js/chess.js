@@ -37,6 +37,8 @@ class Figure {
                             el.classList.add('not-empty-sell');
                             el.classList.add(color);
                             el.dataset.morph = item;
+                            el.dataset.x = coords.x;
+                            el.dataset.y = coords.y;
                             morphDiv.appendChild(el);
                         });
                         document.body.appendChild(morphDiv);
@@ -112,7 +114,9 @@ class Knight extends Figure {
     GetMoves() {
         super.GetMoves();
         let array = [];
-        let y = y, x = this.coords.x;
+        let y = this.coords.y, x = this.coords.x;
+
+        //------------------
         if (x - 1 >= 0 && y + 2 < 8)
             if (map[y + 2][x - 1] === null)
                 array.push({x: x - 1, y: y + 2});
@@ -136,6 +140,31 @@ class Knight extends Figure {
                 array.push({x: x + 1, y: y - 2});
             else if (map[y - 2][x + 1].color != this.color)
                 array.push({x: x + 1, y: y - 2});
+        //--------------------------
+
+        if (y - 1 >= 0 && x + 2 < 8)
+            if (map[y - 1][x + 2] === null)
+                array.push({x: x + 2, y: y - 1});
+            else if (map[y - 1][x + 2].color != this.color)
+                array.push({x: x + 2, y: y - 1});
+
+        if (y - 1 >= 0 && x - 2 >= 0)
+            if (map[y - 1][x - 2] === null)
+                array.push({x: x - 2, y: y - 1});
+            else if (map[y - 1][x - 2].color != this.color)
+                array.push({x: x - 2, y: y - 1});
+
+        if (y + 1 < 8 && x + 2 < 8)
+            if (map[y + 1][x + 2] === null)
+                array.push({x: x + 2, y: y + 1});
+            else if (map[y + 1][x + 2].color != this.color)
+                array.push({x: x + 2, y: y + 1});
+
+        if (y + 1 < 8 && x - 2 >= 0)
+            if (map[y + 1][x - 2] === null)
+                array.push({x: x - 2, y: y + 1});
+            else if (map[y + 1][x - 2].color != this.color)
+                array.push({x: x - 2, y: y + 1});
 
         return array;
     }

@@ -26,6 +26,16 @@ let gameIDGen = 0;
 let games = {};
 let gamesInSearch = [];
 let game = new chess.Game();
+
+/*
+TODO
+1. Метаморфоза пешки
+2. Передача хода
+3. Повторное подключение
+4. Рокировка
+5. Шах
+6. Мат
+ */
 io.on('connection', function (socket) {
     let currSession = socket.handshake.session;
     socket.on('start new game', function () {
@@ -52,11 +62,12 @@ io.on('connection', function (socket) {
     socket.on('try move', function (from, to) {
         let game = games[currSession.gameID];
         try {
-            if (game.map[from.y][from.x].Move(to, game.map)) {
-                game.players.forEach(function (item) {
-                    io.to(item.id).emit('update map', from, to);
-                });
-            }
+            if (game.map[from.y][from.x] != null)
+                if (game.map[from.y][from.x].Move(to, game.map)) {
+                    game.players.forEach(function (item) {
+                        io.to(item.id).emit('update map', from, to);
+                    });
+                }
         } catch (error) {
             console.log(error);
         }
