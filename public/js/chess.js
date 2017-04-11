@@ -51,6 +51,11 @@ class Figure {
         return false;
     }
 
+    GetMoves() {
+        this.coords.x = parseInt(this.coords.x);
+        this.coords.y = parseInt(this.coords.y);
+    }
+
 }
 
 class Pawn extends Figure {
@@ -60,7 +65,12 @@ class Pawn extends Figure {
         this.moved = false;
     }
 
+    SetMoved() {
+        this.moved = true;
+    }
+
     GetMoves() {
+        super.GetMoves();
         let array = [], direction = this.color == 'white' ? 1 : -1;
         let y = this.coords.y + direction, x = this.coords.x;
 
@@ -100,6 +110,7 @@ class Knight extends Figure {
     }
 
     GetMoves() {
+        super.GetMoves();
         let array = [];
         let y = y, x = this.coords.x;
         if (x - 1 >= 0 && y + 2 < 8)
@@ -137,6 +148,7 @@ class Rock extends Figure {
     }
 
     GetMoves() {
+        super.GetMoves();
         let array = [];
 
         for (let x = this.coords.x + 1; x < 8; x++) {
@@ -190,6 +202,7 @@ class Bishop extends Figure {
     }
 
     GetMoves() {
+        super.GetMoves();
         let array = [];
         for (let x = this.coords.x + 1, y = this.coords.y + 1; x < 8; x++, y++) {
             if (y >= 0 && y < 8) {
@@ -242,6 +255,7 @@ class Queen extends Figure {
     }
 
     GetMoves() {
+        super.GetMoves();
         let array = [],
             tmp = new Bishop('white', this.coords);
 
@@ -265,6 +279,7 @@ class King extends Figure {
     }
 
     GetMoves() {
+        super.GetMoves();
         let array = [];
 
         if (this.coords.x + 1 < 8) {

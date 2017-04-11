@@ -1,27 +1,68 @@
 let express = require('express');
 let app = express();
-let io = require('socket.io')(3000);
-let cookieSession = require('cookie-session');
+let session = require("express-session")({
+        secret: "my-secret",
+        resave: true,
+        saveUninitialized: true
+    }),
+    sharedsession = require("express-socket.io-session");
 
+let chess = require(__dirname + '/chess.js');
 app.use(express.static('public'));
-
 app.set('trust proxy', 1);
-app.use(cookieSession({
-    name: 'session',
-    keys: ['key1', 'key2']
-}))
-
+app.use(session);
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/templates/index.html');
+    req.session.test = 'test';
+    req.session.save();
 });
 
-app.listen(80, function () {
-    console.log('Ready to rock!');
-});
-var sessions = {};
+let server = require('http').createServer(app);
+
+let io = require('socket.io')(server);
+io.use(sharedsession(session));
+
+let gameIDGen = 0;
+let games = {};
+let gamesInSearch = [];
+let game = new chess.Game();
 io.on('connection', function (socket) {
-    socket.on('test', function () {
-        console.log('hui');
+    let currSession = socket.handshake.session;
+    socket.on('start new game', function () {
+        if (gamesInSearch.length == 0) {
+            games[gameIDGen] = {};
+            games[gameIDGen].map = game.Map();
+            games[gameIDGen].turn = 'white';
+            games[gameIDGen].history = [];
+            games[gameIDGen].players = [];
+            games[gameIDGen].players.push({id: socket.client.id, role: 'white'});
+            currSession.gameID = gameIDGen;
+            gamesInSearch.push(gameIDGen++)
+        } else {
+            let tmpID = gamesInSearch[0];
+            if (currSession.gameID != tmpID) {
+                games[tmpID].players.push({id: socket.client.id, role: 'black'});
+                currSession.gameID = tmpID;
+            }
+        }
+        io.to(socket.client.id).emit('new map', games[currSession.gameID].map);
+        currSession.save();
     });
 
+    socket.on('try move', function (from, to) {
+        let game = games[currSession.gameID];
+        try {
+            if (game.map[from.y][from.x].Move(to, game.map)) {
+                game.players.forEach(function (item) {
+                    io.to(item.id).emit('update map', from, to);
+                });
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    });
 });
+
+
+server.listen(80);
+

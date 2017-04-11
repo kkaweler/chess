@@ -4,48 +4,21 @@ class Figure {
         this.coords = position;
     }
 
+    GetMoves() {
+        this.coords.x = parseInt(this.coords.x);
+        this.coords.y = parseInt(this.coords.y);
+    }
+
     Move(coords, map) {
         let posibleCoords = this.GetMoves(map);
         for (let i = 0; i < posibleCoords.length; i++)
             if (posibleCoords[i].x == coords.x && posibleCoords[i].y == coords.y) {
                 let oldCoords = this.coords;
                 this.coords = coords;
-
-                let oldObj = document.getElementById('field-cell-' + oldCoords.y + oldCoords.x),
-                    newObj = document.getElementById('field-cell-' + coords.y + coords.x);
-
-                newObj.className = "";
-                oldObj.classList.forEach(function (item) {
-                    newObj.classList.add(item);
-                });
-                oldObj.className = "";
-
-                if (this.type == 'pawn') {
-                    this.moved = true;
-                    if ((this.color == 'white' && this.coords.y == 7) || (this.color == 'black' && this.coords.y == 0)) {
-                        let morphDiv = document.createElement('div');
-                        morphDiv.style.width = '50px';
-                        morphDiv.classList.add('morph')
-                        morphDiv.style.position = "absolute";
-                        morphDiv.style.left = (mainDiv.offsetLeft + mainDiv.offsetWidth + 25) + 'px';
-                        morphDiv.style.top = '7px';
-                        let tmp = ['queen', 'rock', 'bishop', 'knight'];
-                        let color = this.color;
-                        tmp.forEach(function (item) {
-                            let el = document.createElement('div');
-                            el.classList.add(item);
-                            el.classList.add('not-empty-sell');
-                            el.classList.add(color);
-                            el.dataset.morph = item;
-                            morphDiv.appendChild(el);
-                        });
-                        document.body.appendChild(morphDiv);
-                    }
-                }
-
                 map[this.coords.y][this.coords.x] = this;
                 map[oldCoords.y][oldCoords.x] = null;
-                DeleteHighlighted();
+                if (this.type == 'pawn')
+                    this.moved = true;
                 return true;
             }
         return false;
@@ -61,6 +34,7 @@ class Pawn extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [], direction = this.color == 'white' ? 1 : -1;
         let y = this.coords.y + direction, x = this.coords.x;
 
@@ -100,6 +74,7 @@ class Knight extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [];
         let y = y, x = this.coords.x;
         if (x - 1 >= 0 && y + 2 < 8)
@@ -137,6 +112,7 @@ class Rock extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [];
 
         for (let x = this.coords.x + 1; x < 8; x++) {
@@ -190,6 +166,7 @@ class Bishop extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [];
         for (let x = this.coords.x + 1, y = this.coords.y + 1; x < 8; x++, y++) {
             if (y >= 0 && y < 8) {
@@ -242,6 +219,7 @@ class Queen extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [],
             tmp = new Bishop('white', this.coords);
 
@@ -265,6 +243,7 @@ class King extends Figure {
     }
 
     GetMoves(map) {
+        super.GetMoves();
         let array = [];
 
         if (this.coords.x + 1 < 8) {
@@ -326,11 +305,54 @@ class King extends Figure {
     }
 }
 
-module.exports({
+class Game {
+    Map() {
+        let map = [];
+        for (let i = 0; i < 8; i++) {
+            map.push([]);
+            for (let j = 0; j < 8; j++) {
+                map[i][j] = null;
+            }
+        }
+        for (let i = 0; i < 8; i++) {
+            map[1][i] = new Pawn('white', {x: i, y: 1});
+            map[6][i] = new Pawn('black', {x: i, y: 6});
+            switch (i) {
+                case 0:
+                case 7:
+                    map[0][i] = new Rock('white', {x: i, y: 0});
+                    map[7][i] = new Rock('black', {x: i, y: 7});
+                    break;
+                case 1:
+                case 6:
+                    map[0][i] = new Knight('white', {x: i, y: 0});
+                    map[7][i] = new Knight('black', {x: i, y: 7});
+                    break;
+                case 2:
+                case 5:
+                    map[0][i] = new Bishop('white', {x: i, y: 0});
+                    map[7][i] = new Bishop('black', {x: i, y: 7});
+                    break;
+                case 3:
+                    map[0][i] = new Queen('white', {x: i, y: 0});
+                    map[7][i] = new Queen('black', {x: i, y: 7});
+                    break;
+                case 4:
+                    map[0][i] = new King('white', {x: i, y: 0});
+                    map[7][i] = new King('black', {x: i, y: 7});
+                    break;
+            }
+        }
+        return map;
+    }
+}
+
+module.exports = {
     Pawn: Pawn,
     Rock: Rock,
     Bishop: Bishop,
     Queen: Queen,
     King: King,
-    Knight: Knight
-});
+    Knight: Knight,
+    Game: Game
+};

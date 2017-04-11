@@ -6,45 +6,37 @@ function Game() {
             map[i][j] = null;
         }
     }
-    for (let i = 0; i < 8; i++) {
-        map[1][i] = new Pawn('white', {x: i, y: 1});
-        map[6][i] = new Pawn('black', {x: i, y: 6});
-        switch (i) {
-            case 0:
-            case 7:
-                map[0][i] = new Rock('white', {x: i, y: 0});
-                map[7][i] = new Rock('black', {x: i, y: 7});
-                break;
-            case 1:
-            case 6:
-                map[0][i] = new Knight('white', {x: i, y: 0});
-                map[7][i] = new Knight('black', {x: i, y: 7});
-                break;
-            case 2:
-            case 5:
-                map[0][i] = new Bishop('white', {x: i, y: 0});
-                map[7][i] = new Bishop('black', {x: i, y: 7});
-                break;
-            case 3:
-                map[0][i] = new Queen('white', {x: i, y: 0});
-                map[7][i] = new Queen('black', {x: i, y: 7});
-                break;
-            case 4:
-                map[0][i] = new King('white', {x: i, y: 0});
-                map[7][i] = new King('black', {x: i, y: 7});
-                break;
-        }
-    }
-
-    this.drawField = function () {
+    this.drawField = function (newMap) {
         for (let i = 0; i < 8; i++) {
             for (let j = 0; j < 8; j++) {
-                if (map[i][j] !== null) {
+                map[i][j] = null;
+                if (newMap[i][j] !== null) {
                     let element = document.getElementById('field-cell-' + i + j);
                     element.className = "";
-                    element.classList.add(map[i][j].type);
+                    element.classList.add(newMap[i][j].type);
                     element.classList.add('not-empty-sell');
-                    element.classList.add(map[i][j].color);
+                    element.classList.add(newMap[i][j].color);
+                    switch (newMap[i][j].type) {
+                        case 'pawn':
+                            map[i][j] = new Pawn(newMap[i][j].color, {x: j, y: i});
+                            if (newMap[i][j].moved) map[i][j].SetMoved();
+                            break;
+                        case 'knight':
+                            map[i][j] = new Knight(newMap[i][j].color, {x: j, y: i});
+                            break;
+                        case 'rock':
+                            map[i][j] = new Rock(newMap[i][j].color, {x: j, y: i});
+                            break;
+                        case 'bishop':
+                            map[i][j] = new Bishop(newMap[i][j].color, {x: j, y: i});
+                            break;
+                        case 'queen':
+                            map[i][j] = new Queen(newMap[i][j].color, {x: j, y: i});
+                            break;
+                        case 'king':
+                            map[i][j] = new King(newMap[i][j].color, {x: j, y: i});
+                            break;
+                    }
                 }
             }
         }
@@ -63,6 +55,17 @@ function DeleteHighlighted() {
 
 var mainDiv;
 var game = new Game();
+var socket = io.connect();
+
+socket.emit('start new game');
+socket.on('new map', function (newMap) {
+    game.drawField(newMap);
+});
+
+socket.on('update map', function (from, to) {
+    map[from.y][from.x].Move(to);
+});
+
 window.onload = function () {
     mainDiv = document.createElement('div');
     mainDiv.className = 'main-field';
@@ -89,7 +92,7 @@ window.onload = function () {
                         el.dataset.y = item.y;
                         el.onclick = function () {
                             let parent = document.getElementById(this.dataset.parent).dataset;
-                            map[parent.y][parent.x].Move({x: parseInt(this.dataset.x), y: parseInt(this.dataset.y)});
+                            socket.emit('try move', {x: parent.x, y: parent.y}, {x: this.dataset.x, y: this.dataset.y});
                         }
                         let tmp = document.getElementById('field-cell-' + item.y + item.x);
                         el.style.left = tmp.offsetLeft + 'px';
@@ -109,6 +112,4 @@ window.onload = function () {
         doBlack = !doBlack;
     }
     document.body.appendChild(mainDiv);
-    game.drawField();
-
 }
