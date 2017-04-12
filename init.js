@@ -28,46 +28,80 @@ let gamesInSearch = [];
 let game = new chess.Game();
 
 /*
-TODO
-1. Метаморфоза пешки
-2. Передача хода
-3. Повторное подключение
-4. Рокировка
-5. Шах
-6. Мат
+ TODO
+ 1. Метаморфоза пешки | done!
+ 2. Повторное подключение | done!
+ 3.1 Передача хода | testing
+ 3.2 История
+ 4. Пешка(пересечение пешкой удлинённого хода другой пешки)
+ 5. Рокировка
+ 6. Шах
+ 7. Мат
  */
 io.on('connection', function (socket) {
     let currSession = socket.handshake.session;
+    if (typeof games[currSession.gameID] != 'undefined')
+        if (typeof games[currSession.gameID].turn != 'undefined')
+            io.to(socket.client.id).emit('set turn', games[currSession.gameID].turn);
+
     socket.on('start new game', function () {
         if (gamesInSearch.length == 0) {
             games[gameIDGen] = {};
             games[gameIDGen].map = game.Map();
             games[gameIDGen].turn = 'white';
             games[gameIDGen].history = [];
-            games[gameIDGen].players = [];
-            games[gameIDGen].players.push({id: socket.client.id, role: 'white'});
+            games[gameIDGen].players = {};
             currSession.gameID = gameIDGen;
+            currSession.role = 'white';
             gamesInSearch.push(gameIDGen++)
         } else {
             let tmpID = gamesInSearch[0];
             if (currSession.gameID != tmpID) {
-                games[tmpID].players.push({id: socket.client.id, role: 'black'});
+                currSession.role = 'black';
                 currSession.gameID = tmpID;
             }
         }
-        io.to(socket.client.id).emit('new map', games[currSession.gameID].map);
+        games[currSession.gameID].players[currSession.role] = {id: socket.client.id};
+        io.to(socket.client.id).emit('new map', games[currSession.gameID].map, currSession.role);
         currSession.save();
     });
 
     socket.on('try move', function (from, to) {
-        let game = games[currSession.gameID];
+        let currGame = games[currSession.gameID];
         try {
-            if (game.map[from.y][from.x] != null)
-                if (game.map[from.y][from.x].Move(to, game.map)) {
-                    game.players.forEach(function (item) {
-                        io.to(item.id).emit('update map', from, to);
-                    });
+            if (currGame.map[from.y][from.x] != null)
+                if (currGame.map[from.y][from.x].Move(to, currGame.map)) {
+                    for (let player in currGame.players) {
+                        io.to(currGame.players[player].id).emit('update map', from, to);
+                    }
                 }
+        } catch (error) {
+            console.log(error);
+        }
+    });
+
+    socket.on('turn', function () {
+        let currGame = games[currSession.gameID];
+        try {
+            currGame.turn = currGame.turn == 'white' ? 'black' : 'white';
+            for (let player in currGame.players) {
+                io.to(currGame.players[player].id).emit('set turn', currGame.turn);
+            }
+        } catch (error) {
+            console.log(error);
+        }
+    });
+
+    socket.on('morph', function (pawn, to) {
+        let currGame = games[currSession.gameID];
+        try {
+            if (currGame.map[pawn.y][pawn.x].GetType() == 'pawn') {
+                game.Morph(currGame.map[pawn.y][pawn.x], to, currGame.map);
+                for (let player in currGame.players) {
+                    io.to(currGame.players[player].id).emit('update morph', from, to);
+                }
+            }
+
         } catch (error) {
             console.log(error);
         }

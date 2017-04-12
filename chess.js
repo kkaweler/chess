@@ -9,6 +9,18 @@ class Figure {
         this.coords.y = parseInt(this.coords.y);
     }
 
+    GetType() {
+        return this.type;
+    }
+
+    GetCoords() {
+        return this.coords;
+    }
+
+    GetColor() {
+        return this.color;
+    }
+
     Move(coords, map) {
         let posibleCoords = this.GetMoves(map);
         for (let i = 0; i < posibleCoords.length; i++)
@@ -52,13 +64,13 @@ class Pawn extends Figure {
 
         if (x + 1 < 8 && (y >= 0 && y < 8)) {
             if (map[y][x + 1] !== null)
-                if (map[y][x + 1].color != this.color)
+                if (map[y][x + 1].GetColor() != this.color)
                     array.push({x: x + 1, y: y});
         }
 
         if (x - 1 >= 0 && (y >= 0 && y < 8)) {
             if (map[y][x - 1] !== null)
-                if (map[y][x - 1].color != this.color)
+                if (map[y][x - 1].GetColor() != this.color)
                     array.push({x: x - 1, y: y});
         }
 
@@ -80,49 +92,49 @@ class Knight extends Figure {
         if (x - 1 >= 0 && y + 2 < 8)
             if (map[y + 2][x - 1] === null)
                 array.push({x: x - 1, y: y + 2});
-            else if (map[y + 2][x - 1].color != this.color)
+            else if (map[y + 2][x - 1].GetColor() != this.color)
                 array.push({x: x - 1, y: y + 2});
 
         if (x - 1 >= 0 && y - 2 >= 0)
             if (map[y - 2][x - 1] === null)
                 array.push({x: x - 1, y: y - 2});
-            else if (map[y - 2][x - 1].color != this.color)
+            else if (map[y - 2][x - 1].GetColor() != this.color)
                 array.push({x: x - 1, y: y - 2});
 
         if (x + 1 < 8 && y + 2 < 8)
             if (map[y + 2][x + 1] === null)
                 array.push({x: x + 1, y: y + 2});
-            else if (map[y + 2][x + 1].color != this.color)
+            else if (map[y + 2][x + 1].GetColor() != this.color)
                 array.push({x: x + 1, y: y + 2});
 
         if (x + 1 < 8 && y - 2 >= 0)
             if (map[y - 2][x + 1] === null)
                 array.push({x: x + 1, y: y - 2});
-            else if (map[y - 2][x + 1].color != this.color)
+            else if (map[y - 2][x + 1].GetColor() != this.color)
                 array.push({x: x + 1, y: y - 2});
 
         if (y - 1 >= 0 && x + 2 < 8)
             if (map[y - 1][x + 2] === null)
                 array.push({x: x + 2, y: y - 1});
-            else if (map[y - 1][x + 2].color != this.color)
+            else if (map[y - 1][x + 2].GetColor() != this.color)
                 array.push({x: x + 2, y: y - 1});
 
         if (y - 1 >= 0 && x - 2 >= 0)
             if (map[y - 1][x - 2] === null)
                 array.push({x: x - 2, y: y - 1});
-            else if (map[y - 1][x - 2].color != this.color)
+            else if (map[y - 1][x - 2].GetColor() != this.color)
                 array.push({x: x - 2, y: y - 1});
 
         if (y + 1 < 8 && x + 2 < 8)
             if (map[y + 1][x + 2] === null)
                 array.push({x: x + 2, y: y + 1});
-            else if (map[y + 1][x + 2].color != this.color)
+            else if (map[y + 1][x + 2].GetColor() != this.color)
                 array.push({x: x + 2, y: y + 1});
 
         if (y + 1 < 8 && x - 2 >= 0)
             if (map[y + 1][x - 2] === null)
                 array.push({x: x - 2, y: y + 1});
-            else if (map[y + 1][x - 2].color != this.color)
+            else if (map[y + 1][x - 2].GetColor() != this.color)
                 array.push({x: x - 2, y: y + 1});
 
         return array;
@@ -143,7 +155,7 @@ class Rock extends Figure {
             let toInsert = {x: x, y: this.coords.y};
             if (map[toInsert.y][toInsert.x] === null)
                 array.push(toInsert);
-            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else if (map[toInsert.y][toInsert.x].GetColor() == this.color) break;
             else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
@@ -153,7 +165,7 @@ class Rock extends Figure {
             let toInsert = {x: x, y: this.coords.y};
             if (map[toInsert.y][toInsert.x] === null)
                 array.push(toInsert);
-            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else if (map[toInsert.y][toInsert.x].GetColor() == this.color) break;
             else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
@@ -163,7 +175,7 @@ class Rock extends Figure {
             let toInsert = {x: this.coords.x, y: y};
             if (map[toInsert.y][toInsert.x] === null)
                 array.push(toInsert);
-            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else if (map[toInsert.y][toInsert.x].GetColor() == this.color) break;
             else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
@@ -173,7 +185,7 @@ class Rock extends Figure {
             let toInsert = {x: this.coords.x, y: y};
             if (map[toInsert.y][toInsert.x] === null)
                 array.push(toInsert);
-            else if (map[toInsert.y][toInsert.x].color == this.color) break;
+            else if (map[toInsert.y][toInsert.x].GetColor() == this.color) break;
             else array.push(toInsert);
             if (map[toInsert.y][toInsert.x] !== null)
                 break;
@@ -196,7 +208,7 @@ class Bishop extends Figure {
             if (y >= 0 && y < 8) {
                 if (map[y][x] === null)
                     array.push({x: x, y: y});
-                else if (map[y][x].color == this.color) break;
+                else if (map[y][x].GetColor() == this.color) break;
                 else array.push({x: x, y: y});
                 if (map[y][x] !== null)
                     break;
@@ -206,7 +218,7 @@ class Bishop extends Figure {
             if (y >= 0 && y < 8) {
                 if (map[y][x] === null)
                     array.push({x: x, y: y});
-                else if (map[y][x].color == this.color) break;
+                else if (map[y][x].GetColor() == this.color) break;
                 else array.push({x: x, y: y});
                 if (map[y][x] !== null)
                     break;
@@ -216,7 +228,7 @@ class Bishop extends Figure {
             if (y >= 0 && y < 8) {
                 if (map[y][x] === null)
                     array.push({x: x, y: y});
-                else if (map[y][x].color == this.color) break;
+                else if (map[y][x].GetColor() == this.color) break;
                 else array.push({x: x, y: y});
                 if (map[y][x] !== null)
                     break;
@@ -226,7 +238,7 @@ class Bishop extends Figure {
             if (y >= 0 && y < 8) {
                 if (map[y][x] === null)
                     array.push({x: x, y: y});
-                else if (map[y][x].color == this.color) break;
+                else if (map[y][x].GetColor() == this.color) break;
                 else array.push({x: x, y: y});
                 if (map[y][x] !== null)
                     break;
@@ -273,56 +285,56 @@ class King extends Figure {
         if (this.coords.x + 1 < 8) {
             if (map[this.coords.y][this.coords.x + 1] === null)
                 array.push({x: this.coords.x + 1, y: this.coords.y});
-            else if (map[this.coords.y][this.coords.x + 1].color != this.color)
+            else if (map[this.coords.y][this.coords.x + 1].GetColor() != this.color)
                 array.push({x: this.coords.x + 1, y: this.coords.y});
         }
 
         if (this.coords.x - 1 >= 0) {
             if (map[this.coords.y][this.coords.x - 1] === null)
                 array.push({x: this.coords.x - 1, y: this.coords.y});
-            else if (map[this.coords.y][this.coords.x - 1].color != this.color)
+            else if (map[this.coords.y][this.coords.x - 1].GetColor() != this.color)
                 array.push({x: this.coords.x - 1, y: this.coords.y});
         }
 
         if (this.coords.y + 1 < 8) {
             if (map[this.coords.y + 1][this.coords.x] === null)
                 array.push({x: this.coords.x, y: this.coords.y + 1});
-            else if (map[this.coords.y + 1][this.coords.x].color != this.color)
+            else if (map[this.coords.y + 1][this.coords.x].GetColor() != this.color)
                 array.push({x: this.coords.x, y: this.coords.y + 1});
         }
 
         if (this.coords.y - 1 >= 0) {
             if (map[this.coords.y - 1][this.coords.x] === null)
                 array.push({x: this.coords.x, y: this.coords.y - 1});
-            else if (map[this.coords.y - 1][this.coords.x].color != this.color)
+            else if (map[this.coords.y - 1][this.coords.x].GetColor() != this.color)
                 array.push({x: this.coords.x, y: this.coords.y - 1});
         }
 
         if (this.coords.x + 1 < 8 && this.coords.y + 1 < 8) {
             if (map[this.coords.y + 1][this.coords.x + 1] === null)
                 array.push({x: this.coords.x + 1, y: this.coords.y + 1});
-            else if (map[this.coords.y + 1][this.coords.x + 1].color != this.color)
+            else if (map[this.coords.y + 1][this.coords.x + 1].GetColor() != this.color)
                 array.push({x: this.coords.x + 1, y: this.coords.y + 1});
         }
 
         if (this.coords.x + 1 < 8 && this.coords.y - 1 >= 0) {
             if (map[this.coords.y - 1][this.coords.x + 1] === null)
                 array.push({x: this.coords.x + 1, y: this.coords.y - 1});
-            else if (map[this.coords.y - 1][this.coords.x + 1].color != this.color)
+            else if (map[this.coords.y - 1][this.coords.x + 1].GetColor() != this.color)
                 array.push({x: this.coords.x + 1, y: this.coords.y - 1});
         }
 
         if (this.coords.x - 1 >= 0 && this.coords.y + 1 < 8) {
             if (map[this.coords.y + 1][this.coords.x - 1] === null)
                 array.push({x: this.coords.x - 1, y: this.coords.y + 1});
-            else if (map[this.coords.y + 1][this.coords.x - 1].color != this.color)
+            else if (map[this.coords.y + 1][this.coords.x - 1].GetColor() != this.color)
                 array.push({x: this.coords.x - 1, y: this.coords.y + 1});
         }
 
         if (this.coords.x - 1 < 8 && this.coords.y - 1 >= 0) {
             if (map[this.coords.y - 1][this.coords.x - 1] === null)
                 array.push({x: this.coords.x - 1, y: this.coords.y - 1});
-            else if (map[this.coords.y - 1][this.coords.x - 1].color != this.color)
+            else if (map[this.coords.y - 1][this.coords.x - 1].GetColor() != this.color)
                 array.push({x: this.coords.x - 1, y: this.coords.y - 1});
         }
         return array;
@@ -368,6 +380,24 @@ class Game {
             }
         }
         return map;
+    }
+
+    Morph(from, to, map) {
+        from = from.GetCoords();
+        switch (to) {
+            case 'knight':
+                map[from.y][from.x] = new Knight(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
+                break;
+            case 'rock':
+                map[from.y][from.x] = new Rock(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
+                break;
+            case 'bishop':
+                map[from.y][from.x] = new Bishop(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
+                break;
+            case 'queen':
+                map[from.y][from.x] = new Queen(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
+                break;
+        }
     }
 }
 
