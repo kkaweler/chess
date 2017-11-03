@@ -7,12 +7,32 @@ function Game() {
             map[i][j] = null;
         }
     }
+    this.history = [];
     this.turn = 'white';
+    this.markedCells = [];
+
+    this.SetMarkedCells = function (newCells) {
+        this.markedCells = newCells;
+    }
+
     this.SetTurn = function (newTurn) {
         this.turn = newTurn;
     }
+
     this.GetTurn = function () {
         return this.turn;
+    }
+
+    this.SetHistory = function (history) {
+        this.history = history;
+    }
+
+    this.UpdateHistry = function (el) {
+        this.history.push(el);
+    }
+
+    this.LastTurn = function () {
+        return this.history[this.history.length - 1];
     }
 
     this.CreateFigure = function (element, i, j) {
@@ -36,7 +56,9 @@ function Game() {
                 break;
             case 'king':
                 toReturn = new King(element.color, {x: j, y: i});
-                break;
+                if (element.color == player.role)
+                    player.king = toReturn;
+
         }
         return toReturn;
     };
@@ -72,15 +94,18 @@ var mainDiv;
 var game = new Game();
 var socket = io.connect();
 
-socket.emit('start new game');
+window.onload = function () {
+    socket.emit('start new game');
+}
+
 socket.on('new map', function (newMap, role) {
     player.role = role;
     mainDiv = document.createElement('div');
     mainDiv.className = 'main-field';
     var blackColor = '#9e9e9e';
     var doBlack = false;
-    for (let i = role == 'white' ? 7 : 0; role == 'white' ? i>=0 : i < 8; role == 'white' ? i-- : i++) {
-        for (let j = role == 'white' ? 7 : 0; role == 'white' ? j>=0 : j < 8; role == 'white' ? j-- : j++) {
+    for (let i = role == 'white' ? 7 : 0; role == 'white' ? i >= 0 : i < 8; role == 'white' ? i-- : i++) {
+        for (let j = role == 'white' ? 7 : 0; role == 'white' ? j >= 0 : j < 8; role == 'white' ? j-- : j++) {
             let element = document.createElement('div');
             element.id = 'field-cell-' + i + j;
             element.dataset.x = j;
@@ -91,28 +116,7 @@ socket.on('new map', function (newMap, role) {
                 DeleteHighlighted();
                 if (map[data.y][data.x] !== null && player.role == game.GetTurn()) {
                     if (map[data.y][data.x].GetColor() == player.role) {
-                        let highlight = map[data.y][data.x].GetMoves();
-                        highlight.forEach(function (item) {
-                            let el = document.createElement('div');
-                            el.classList.add('highlighted');
-                            el.style.position = "absolute";
-                            el.dataset.parent = id;
-                            el.dataset.x = item.x;
-                            el.dataset.y = item.y;
-                            el.onclick = function () {
-                                if (player.role == game.GetTurn()) {
-                                    let parent = document.getElementById(this.dataset.parent).dataset;
-                                    socket.emit('try move', {x: parent.x, y: parent.y}, {
-                                        x: this.dataset.x,
-                                        y: this.dataset.y
-                                    });
-                                }
-                            }
-                            let tmp = document.getElementById('field-cell-' + item.y + item.x);
-                            el.style.left = tmp.offsetLeft + 'px';
-                            el.style.top = tmp.offsetTop + 'px';
-                            document.body.appendChild(el);
-                        });
+                        socket.emit('get moves', {y: data.y, x: data.x, id: id});
                     }
                 }
             }
@@ -129,8 +133,10 @@ socket.on('new map', function (newMap, role) {
     game.drawField(newMap);
 });
 
-socket.on('set turn', function (turn) {
+socket.on('set turn', function (turn, message) {
     game.SetTurn(turn);
+    if (message && message.length) alert(message);
+
 });
 
 socket.on('update map', function (from, to) {
@@ -147,4 +153,42 @@ socket.on('update morph', function (from, to) {
     } catch (e) {
         console.log(e);
     }
+});
+
+socket.on('clear cell', function (cell) {
+    let element = document.getElementById('field-cell-' + cell.y + cell.x);
+    element.className = "";
+    map[cell.y][cell.x] = null;
+});
+
+socket.on('update history', function (el) {
+    game.UpdateHistry(el);
+});
+
+socket.on('set history', function (history) {
+    game.SetHistory(history);
+});
+
+socket.on('highlight', function (highlight, id) {
+    highlight.forEach(function (item) {
+        let el = document.createElement('div');
+        el.classList.add('highlighted');
+        el.style.position = "absolute";
+        el.dataset.parent = id;
+        el.dataset.x = item.x;
+        el.dataset.y = item.y;
+        el.onclick = function () {
+            if (player.role == game.GetTurn()) {
+                let parent = document.getElementById(this.dataset.parent).dataset;
+                socket.emit('try move', {x: parent.x, y: parent.y}, {
+                    x: this.dataset.x,
+                    y: this.dataset.y
+                });
+            }
+        }
+        let tmp = document.getElementById('field-cell-' + item.y + item.x);
+        el.style.left = tmp.offsetLeft + 'px';
+        el.style.top = tmp.offsetTop + 'px';
+        document.body.appendChild(el);
+    });
 });

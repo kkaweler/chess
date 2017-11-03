@@ -25,31 +25,34 @@ io.use(sharedsession(session));
 let gameIDGen = 0;
 let games = {};
 let gamesInSearch = [];
-let game = new chess.Game();
 
-/*
- TODO
- 1. Метаморфоза пешки | done!
- 2. Повторное подключение | done!
- 3.1 Передача хода | testing
- 3.2 История
- 4. Пешка(пересечение пешкой удлинённого хода другой пешки)
- 5. Рокировка
- 6. Шах
- 7. Мат
- */
+function deepCloning(startObject) {
+    var newObject = {};
+    for (var firstKey in startObject) {
+        var innerObject = {};
+        var objectProperty = startObject[firstKey];
+        if (typeof(objectProperty) == "object") {
+            for (var secondKey in objectProperty) {
+                innerObject[secondKey] = objectProperty[secondKey];
+            }
+        }
+        else {
+            innerObject = objectProperty;
+        }
+        newObject[firstKey] = innerObject;
+    }
+    return newObject;
+}
+
 io.on('connection', function (socket) {
     let currSession = socket.handshake.session;
-    if (typeof games[currSession.gameID] != 'undefined')
-        if (typeof games[currSession.gameID].turn != 'undefined')
-            io.to(socket.client.id).emit('set turn', games[currSession.gameID].turn);
 
     socket.on('start new game', function () {
         if (gamesInSearch.length == 0) {
             games[gameIDGen] = {};
-            games[gameIDGen].map = game.Map();
-            games[gameIDGen].turn = 'white';
+            games[gameIDGen].game = new chess.Game();
             games[gameIDGen].history = [];
+            games[gameIDGen].history.push({game: deepCloning(games[gameIDGen].game)});
             games[gameIDGen].players = {};
             currSession.gameID = gameIDGen;
             currSession.role = 'white';
@@ -59,49 +62,96 @@ io.on('connection', function (socket) {
             if (currSession.gameID != tmpID) {
                 currSession.role = 'black';
                 currSession.gameID = tmpID;
+                gamesInSearch.shift();
             }
         }
         games[currSession.gameID].players[currSession.role] = {id: socket.client.id};
-        io.to(socket.client.id).emit('new map', games[currSession.gameID].map, currSession.role);
+        io.to(socket.client.id).emit('new map', games[currSession.gameID].game.map, currSession.role);
+        io.to(socket.client.id).emit('set history', games[currSession.gameID].history);
         currSession.save();
+
+        if (typeof games[currSession.gameID] != 'undefined')
+            if (typeof games[currSession.gameID].game.turn != 'undefined')
+                io.to(socket.client.id).emit('set turn', games[currSession.gameID].game.turn);
+
     });
 
     socket.on('try move', function (from, to) {
-        let currGame = games[currSession.gameID];
+        let currMatch = games[currSession.gameID];
         try {
-            if (currGame.map[from.y][from.x] != null)
-                if (currGame.map[from.y][from.x].Move(to, currGame.map)) {
-                    for (let player in currGame.players) {
-                        io.to(currGame.players[player].id).emit('update map', from, to);
+            if (currMatch.game.map[from.y][from.x] != null) {
+                let lastMove = currMatch.history.slice(-1).pop();
+                currMatch.game.Move(from, to, lastMove, function (moved) {
+                    if (moved) {
+                        let historyEl = {
+                            from: from,
+                            to: to,
+                            type: currMatch.game.map[to.y][to.x].GetType(),
+                            game: deepCloning(currMatch.game)
+                        };
+                        currMatch.history.push(historyEl);
+                        for (let player in currMatch.players) {
+                            io.to(currMatch.players[player].id).emit('update map', from, to);
+                            io.to(currMatch.players[player].id).emit('update history', historyEl);
+                            if (typeof lastMove != 'undefined')
+                                if (typeof lastMove.to != 'undefined') {
+                                    if (currMatch.game.map[lastMove.to.y][lastMove.to.x] == null) {
+                                        io.to(currMatch.players[player].id).emit('clear cell', lastMove.to);
+                                    }
+                                }
+                        }
                     }
-                }
+                });
+            }
         } catch (error) {
             console.log(error);
         }
     });
 
     socket.on('turn', function () {
-        let currGame = games[currSession.gameID];
+        let currMatch = games[currSession.gameID];
         try {
-            currGame.turn = currGame.turn == 'white' ? 'black' : 'white';
-            for (let player in currGame.players) {
-                io.to(currGame.players[player].id).emit('set turn', currGame.turn);
-            }
+            currMatch.game.turn = currMatch.game.turn == 'white' ? 'black' : 'white';
+            let lastMove = currMatch.history.slice(-1).pop();
+            currMatch.game.GetMovesColor(lastMove, function (res) {
+                console.log(res);
+                let message = '';
+                if(res == 'check') message = 'Check ' + currMatch.game.turn;
+                if(res == 'mate') message = 'Mate' + (currMatch.game.turn == 'white' ? 'black' : 'white') + ' win!' ;
+
+                for (let player in currMatch.players) {
+                    io.to(currMatch.players[player].id).emit('set turn', currMatch.game.turn, message);
+                }
+            });
         } catch (error) {
             console.log(error);
         }
     });
 
     socket.on('morph', function (pawn, to) {
-        let currGame = games[currSession.gameID];
+        let currMatch = games[currSession.gameID];
         try {
-            if (currGame.map[pawn.y][pawn.x].GetType() == 'pawn') {
-                game.Morph(currGame.map[pawn.y][pawn.x], to, currGame.map);
-                for (let player in currGame.players) {
-                    io.to(currGame.players[player].id).emit('update morph', from, to);
+            if (currMatch.game.map[pawn.y][pawn.x].GetType() == 'pawn') {
+                currMatch.game.Morph(currMatch.game.map[pawn.y][pawn.x], to);
+                let historyEl = {type: 'morph', from: pawn, to: to, game: deepCloning(currMatch.game)};
+                currMatch.history.push(historyEl);
+                for (let player in currMatch.players) {
+                    io.to(currMatch.players[player].id).emit('update morph', pawn, to);
+                    io.to(currMatch.players[player].id).emit('update history', historyEl);
                 }
             }
 
+        } catch (error) {
+            console.log(error);
+        }
+    });
+
+    socket.on('get moves', function (from) {
+        let currMatch = games[currSession.gameID];
+        try {
+            currMatch.game.GetMoves(from, currMatch.history.slice(-1).pop(), function (moves) {
+                io.to(socket.client.id).emit('highlight', moves, from.id);
+            })
         } catch (error) {
             console.log(error);
         }

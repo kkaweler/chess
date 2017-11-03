@@ -55,9 +55,8 @@ class Figure {
                             }
                         });
                         document.body.appendChild(morphDiv);
-                    } else if(!update) socket.emit('turn');
-                } else if(!update) socket.emit('turn');
-
+                    } else if (!update) socket.emit('turn');
+                } else if (!update) socket.emit('turn');
 
 
                 map[this.coords.y][this.coords.x] = this;
@@ -123,13 +122,24 @@ class Pawn extends Figure {
 
     GetMoves() {
         super.GetMoves();
-        let array = [], direction = this.color == 'white' ? 1 : -1;
+        let array = [], direction = this.color == 'white' ? 1 : -1, lastMove = game.LastTurn();
         let y = this.coords.y + direction, x = this.coords.x;
 
         if (y >= 0 && y < 8) {
             if (map[y][x] === null)
                 array.push({x: x, y: y});
         }
+
+        if (typeof lastMove != 'undefined')
+            if (lastMove.type == 'pawn' && this.coords.y == lastMove.to.y
+                && Math.abs(lastMove.from.y - lastMove.to.y) == 2
+                && Math.abs(lastMove.from.x - this.coords.x) == 1) {
+                array.push({
+                    x: lastMove.to.x,
+                    y: lastMove.from.y > lastMove.to.y ? lastMove.from.y - 1 : lastMove.to.y - 1
+                });
+            }
+
         if (!this.moved) {
             if (y >= 0 && y < 8) {
                 if (map[y + direction][x] === null && map[y][x] === null) {
@@ -336,13 +346,13 @@ class Queen extends Figure {
     GetMoves() {
         super.GetMoves();
         let array = [],
-            tmp = new Bishop('white', this.coords);
+            tmp = new Bishop(this.color, this.coords);
 
         tmp.GetMoves().forEach(function (item) {
             array.push(item);
         });
 
-        tmp = new Rock('white', this.coords);
+        tmp = new Rock(this.color, this.coords);
         tmp.GetMoves().forEach(function (item) {
             array.push(item);
         });

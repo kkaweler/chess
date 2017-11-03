@@ -21,15 +21,22 @@ class Figure {
         return this.color;
     }
 
-    Move(coords, map) {
-        let posibleCoords = this.GetMoves(map);
+    Move(coords, map, lastmove) {
+        let posibleCoords = this.GetMoves(map, lastmove);
         for (let i = 0; i < posibleCoords.length; i++)
             if (posibleCoords[i].x == coords.x && posibleCoords[i].y == coords.y) {
                 let oldCoords = this.coords;
                 this.coords = coords;
                 map[this.coords.y][this.coords.x] = this;
                 map[oldCoords.y][oldCoords.x] = null;
-                if (this.type == 'pawn')
+                if (this.type == 'pawn') {
+                    this.moved = true;
+                    if (posibleCoords[i].killFastPawn) {
+                        let tmp = posibleCoords[i].killFastPawn;
+                        map[tmp.y][tmp.x] = null;
+                    }
+                }
+                if (this.type == 'king')
                     this.moved = true;
                 return true;
             }
@@ -45,10 +52,21 @@ class Pawn extends Figure {
         this.moved = false;
     }
 
-    GetMoves(map) {
+    GetMoves(map, lastMove = undefined) {
         super.GetMoves();
         let array = [], direction = this.color == 'white' ? 1 : -1;
         let y = this.coords.y + direction, x = this.coords.x;
+
+        if (typeof lastMove != 'undefined')
+            if (lastMove.type == 'pawn' && this.coords.y == lastMove.to.y
+                && Math.abs(lastMove.from.y - lastMove.to.y) == 2
+                && Math.abs(lastMove.from.x - this.coords.x) == 1) {
+                array.push({
+                    x: lastMove.to.x,
+                    y: lastMove.from.y > lastMove.to.y ? lastMove.from.y - 1 : lastMove.to.y - 1,
+                    killFastPawn: lastMove.to
+                });
+            }
 
         if (y >= 0 && y < 8) {
             if (map[y][x] === null)
@@ -83,6 +101,7 @@ class Knight extends Figure {
     constructor(color, position) {
         super(color, position);
         this.type = 'knight';
+        this.check = false;
     }
 
     GetMoves(map) {
@@ -257,13 +276,13 @@ class Queen extends Figure {
     GetMoves(map) {
         super.GetMoves();
         let array = [],
-            tmp = new Bishop('white', this.coords);
+            tmp = new Bishop(this.color, this.coords);
 
         tmp.GetMoves(map).forEach(function (item) {
             array.push(item);
         });
 
-        tmp = new Rock('white', this.coords);
+        tmp = new Rock(this.color, this.coords);
         tmp.GetMoves(map).forEach(function (item) {
             array.push(item);
         });
@@ -272,10 +291,66 @@ class Queen extends Figure {
     }
 }
 
+function deepCloning(startObject) {
+    var newObject = {};
+    newObject.kings = {};
+    for (var firstKey in startObject) {
+        var innerObject = {};
+        var objectProperty = startObject[firstKey];
+        if (typeof(objectProperty) == "object") {
+            for (var secondKey in objectProperty) {
+                if (objectProperty[secondKey] !== null) {
+                    let obj = {};
+                    switch (objectProperty[secondKey].GetType()) {
+                        case 'pawn' :
+                            obj = new Pawn(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            obj.moved = objectProperty[secondKey].moved;
+                            break;
+                        case 'knight':
+                            obj = new Knight(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            break;
+                        case 'rock':
+                            obj = new Rock(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            break;
+                        case 'bishop':
+                            obj = new Bishop(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            break;
+                        case 'queen':
+                            obj = new Queen(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            break;
+                        case 'king':
+                            obj = new King(objectProperty[secondKey].GetColor(), objectProperty[secondKey].GetCoords());
+                            obj.moved = objectProperty[secondKey].moved;
+                            newObject.kings[objectProperty[secondKey].GetColor()] = obj;
+                            break;
+
+                    }
+                    innerObject[secondKey] = obj;
+                }
+                else innerObject[secondKey] = null;
+            }
+        }
+        else {
+            innerObject = null;
+        }
+        newObject[firstKey] = innerObject;
+    }
+    return newObject;
+}
+
 class King extends Figure {
     constructor(color, position) {
         super(color, position);
         this.type = 'king';
+        this.moved = false;
+    }
+
+    Check(check = undefined) {
+        if (typeof check == "boolean") {
+            if (check) this.check = true;
+            else this.check = false;
+        } else
+            return this.check;
     }
 
     GetMoves(map) {
@@ -342,6 +417,13 @@ class King extends Figure {
 }
 
 class Game {
+
+    constructor() {
+        this.map = this.Map();
+        this.kings = {white: this.map[0][4], black: this.map[7][4]};
+        this.turn = 'white';
+    }
+
     Map() {
         let map = [];
         for (let i = 0; i < 8; i++) {
@@ -382,8 +464,9 @@ class Game {
         return map;
     }
 
-    Morph(from, to, map) {
+    Morph(from, to) {
         from = from.GetCoords();
+        let map = this.map;
         switch (to) {
             case 'knight':
                 map[from.y][from.x] = new Knight(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
@@ -398,6 +481,117 @@ class Game {
                 map[from.y][from.x] = new Queen(map[from.y][from.x].GetColor(), {x: from.x, y: from.y});
                 break;
         }
+    }
+
+
+    GetMoves(from, lastMove, callback) {
+
+        let moves = this.map[from.y][from.x].GetMoves(this.map, lastMove);
+
+        let newMoves = [];
+        for (let i = 0; i < moves.length; i++) {
+            let newMap = deepCloning(this.map);
+            newMap[from.y][from.x].Move(moves[i], newMap, lastMove);
+            let newKing = newMap.kings[this.turn].GetCoords();
+            let markedCells = this.GetAllPlayerMoves(this.turn == 'white' ? 'black' : 'white', newMap);
+            if (!markedCells[newKing.y][newKing.x]) {
+                newMoves.push(moves[i]);
+            }
+        }
+        callback(newMoves);
+    }
+
+
+    Move(from, to, lastMove, callback) {
+
+        let newMap = deepCloning(this.map);
+        newMap[from.y][from.x].Move(to, newMap, lastMove);
+
+        let newKing = newMap.kings[this.turn].GetCoords();
+
+        let markedCells = this.GetAllPlayerMoves(this.turn == 'white' ? 'black' : 'white', newMap, lastMove);
+        if (!markedCells[newKing.y][newKing.x]) {
+            if (this.map[from.y][from.x].Move(to, this.map, lastMove))
+                callback(true);
+        } else callback(false);
+    }
+
+
+    GetAllPlayerMoves(color, map, lastMove = undefined) {
+        let markedCells = [];
+
+        for (let i = 0; i < 8; i++) {
+            markedCells.push([]);
+            for (let j = 0; j < 8; j++) {
+                markedCells[i][j] = false;
+            }
+        }
+        markedCells.hasMove = 0;
+
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                if (map[i][j] !== null && map[i][j].GetColor() == color) {
+                    let moves = map[i][j].GetMoves(map, lastMove);
+                    for (let z = 0; z < moves.length; z++) {
+                        markedCells[moves[z].y][moves[z].x] = true;
+                        markedCells.hasMove++;
+                    }
+                }
+            }
+        }
+
+        return (markedCells);
+    }
+
+    GetAllPlayerMovesCount(color, lastMove = undefined, callback = undefined) {
+        let map = this.map;
+        let count = 0, figures = [];
+        for (let i = 0; i < 8; i++) {
+            for (let j = 0; j < 8; j++) {
+                if (map[i][j] !== null && map[i][j].GetColor() == color) {
+                    figures.push(map[i][j]);
+                }
+            }
+        }
+        let figuresCount = 0;
+        let tmp = this
+        figures.forEach(function (item) {
+            tmp.GetMoves(item.GetCoords(), lastMove, function (res) {
+                figuresCount++;
+                if (res.length) count += res.length;
+                if (figuresCount == figures.length) {
+                    callback(count);
+                }
+            });
+        })
+
+    }
+
+    GetMovesColor(lastMove, callback) {
+        let king = this.kings[this.turn], kingCoords = king.GetCoords(), res = '';
+        let markedCells = this.GetAllPlayerMoves(this.turn == 'white' ? 'black' : 'white', this.map);
+        if (markedCells[kingCoords.y][kingCoords.x]) {
+            king.Check(true);
+            res = 'check';
+            this.GetAllPlayerMovesCount(this.turn, lastMove, function (moves) {
+                if (!moves)res = 'mate';
+                callback(res);
+            });
+
+        } else {
+            this.GetAllPlayerMovesCount(this.turn, lastMove, function (moves) {
+                if (moves) {
+                    king.Check(false);
+                    res = 'go next';
+                }
+                else res = 'pate';
+                callback(res);
+            });
+
+
+        }
+
+
     }
 }
 
